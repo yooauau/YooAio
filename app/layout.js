@@ -21,33 +21,44 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <style>{`
-          /* Custom Scrollbar - 핑크색만 둥둥 뜨게 */
+          /* Custom Scrollbar - 핫핑크색만 둥둥 뜨게 (투명 배경) */
           ::-webkit-scrollbar {
-            width: 30px;
-            height: 30px;
-            background: transparent;
+            width: 18px;
+            height: 18px;
+            background: transparent !important;
           }
           ::-webkit-scrollbar-track {
-            background: transparent;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
           }
           ::-webkit-scrollbar-thumb {
-            background: linear-gradient(180deg, #ff6b9d 0%, #c44569 50%, #ff6b9d 100%);
-            border-radius: 20px;
-            border: none;
+            background: linear-gradient(180deg, #ff6b9d 0%, #c44569 50%, #ff6b9d 100%) !important;
+            border-radius: 100px !important;
+            border: 4px solid transparent !important;
+            background-clip: padding-box !important;
+            min-height: 50px;
           }
           ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(180deg, #ff85ad 0%, #d45579 50%, #ff85ad 100%);
+            background: linear-gradient(180deg, #ff85ad 0%, #d45579 50%, #ff85ad 100%) !important;
+            border: 4px solid transparent !important;
+            background-clip: padding-box !important;
+          }
+          ::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(180deg, #e55a8a 0%, #b43559 50%, #e55a8a 100%) !important;
+            border: 4px solid transparent !important;
+            background-clip: padding-box !important;
           }
           ::-webkit-scrollbar-button {
-            display: none;
-            width: 0;
-            height: 0;
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
           }
           ::-webkit-scrollbar-corner {
-            background: transparent;
+            background: transparent !important;
           }
           html {
-            scrollbar-width: thin;
+            scrollbar-width: auto;
             scrollbar-color: #ff6b9d transparent;
           }
           /* 4분할 박스 안 스크롤바 숨기기 */

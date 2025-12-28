@@ -76,36 +76,69 @@ body > div:last-of-type[style*="z-index: 9999"] {
     }
 }
 
-/* Custom Scrollbar - YooA World 핑크 그라데이션 */
+/* MagicBento 테두리 그라데이션 애니메이션 */
+@keyframes borderGradientMove {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* 펼쳐보기 버튼 호버 효과 */
+.expand-btn:hover {
+    color: #ff6b9d !important;
+}
+
+/* Custom Scrollbar - 핫핑크색만 둥둥 뜨게 (투명 배경) */
 ::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
+    width: 18px !important;
+    height: 18px !important;
+    background: transparent !important;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(255, 240, 245, 0.5);
-    border-radius: 10px;
-    margin: 8px 0;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #ff6b9d 0%, #c44569 50%, #ff6b9d 100%);
-    border-radius: 10px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 2px 8px rgba(255, 107, 157, 0.4);
+    background: linear-gradient(180deg, #ff6b9d 0%, #c44569 50%, #ff6b9d 100%) !important;
+    border-radius: 100px !important;
+    border: 4px solid transparent !important;
+    background-clip: padding-box !important;
+    min-height: 50px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #ff85ad 0%, #d45579 50%, #ff85ad 100%);
-    box-shadow: 0 2px 12px rgba(255, 107, 157, 0.6);
+    background: linear-gradient(180deg, #ff85ad 0%, #d45579 50%, #ff85ad 100%) !important;
+    border: 4px solid transparent !important;
+    background-clip: padding-box !important;
 }
 
 ::-webkit-scrollbar-thumb:active {
-    background: linear-gradient(180deg, #e55a8a 0%, #b43559 50%, #e55a8a 100%);
+    background: linear-gradient(180deg, #e55a8a 0%, #b43559 50%, #e55a8a 100%) !important;
+    border: 4px solid transparent !important;
+    background-clip: padding-box !important;
+}
+
+::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent !important;
 }
 
 /* Firefox 스크롤바 */
-* {
+html {
     scrollbar-width: auto;
-    scrollbar-color: #ff6b9d rgba(255, 240, 245, 0.5);
+    scrollbar-color: #ff6b9d transparent;
 }

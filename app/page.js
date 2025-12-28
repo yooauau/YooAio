@@ -6,6 +6,7 @@ import { Play } from "lucide-react";
 import dynamic from "next/dynamic";
 import MagicBento from "../components/MagicBento";
 import Footer from "../components/Footer";
+import ClickSpark from "../components/ClickSpark";
 // 3D 모델 뷰어 (클라이언트 전용)
 
 // Three.js component - loaded only on client side
@@ -34,6 +35,9 @@ export default function StreamerDashboard() {
     });
     const [expandedPlatform, setExpandedPlatform] = useState(null);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [hoveredExpandBtn, setHoveredExpandBtn] = useState(null);
+    const [isCheeseHovered, setIsCheeseHovered] = useState(false);
+    const [flyingCheeses, setFlyingCheeses] = useState([]);
     const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
     const [chatMessages, setChatMessages] = useState([
         { id: 1, user: "팬123", message: "오늘 방송 재밌어요!", time: "10:23" },
@@ -217,15 +221,15 @@ useEffect(() => {
     // Calculate card positions based on state
     const getCardStyle = (index, platformId) => {
         const gap = 20;
-        const headerHeight = 80;  // 상단 여백 (pt-20 = 80px)
+        const verticalPadding = 40;  // 상하 여백
         const padding = 16;
-        const bottomPadding = 0;  // 하단 여백 없음
 
-        const containerWidth = dimensions.width - padding * 2;
-        const containerHeight = dimensions.height - headerHeight - bottomPadding;  // 100vh 기준
+        // 컨테이너가 90vw이므로 90% 기준으로 계산
+        const containerWidth = (dimensions.width * 0.9) - padding * 2;
+        const availableHeight = dimensions.height - verticalPadding * 2;  // 상하 여백 제외
 
         const cardWidth = (containerWidth - gap) / 2;
-        const cardHeight = (containerHeight - gap) / 2;
+        const cardHeight = (availableHeight - gap) / 2;
 
         const isExpanded = expandedPlatform === platformId;
         const hasExpanded = expandedPlatform !== null;
@@ -239,7 +243,7 @@ useEffect(() => {
                 top: isExpandedFromTopRow ? 0 : 140,
                 left: 0,
                 width: containerWidth,
-                height: containerHeight - 160,
+                height: availableHeight - 160,
             };
         }
 
@@ -249,7 +253,7 @@ useEffect(() => {
             const collapsedWidth = (containerWidth - gap * 2) / 3;
 
             const collapsedTop = isExpandedFromTopRow
-                ? containerHeight - 140
+                ? availableHeight - 140
                 : 0;
 
             return {
@@ -523,37 +527,136 @@ useEffect(() => {
                         pointerEvents: scrollProgress > 0.68 ? 'auto' : 'none',
                     }}
                 >
-                    <motion.div 
-                        className="px-4 py-2 rounded-xl"
-                        style={{
-                            background: 'rgba(255, 255, 255, 0.15)',
-                            backdropFilter: 'blur(8px)',
-                        }}
-                        animate={{
-                            y: [0, -3, 0],
-                        }}
-                        transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                        }}
-                    >
-                        <div className="flex items-center gap-3">
-                            <svg className="w-5 h-5 text-pink-400" viewBox="0 0 24 24" fill="none">
-                                <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                <path d="M9 22V12H15V22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                            <div className="text-center">
-                                <h2 className="text-lg font-semibold text-gray-700 tracking-tight">YooA's Room</h2>
-                                <div className="flex items-center justify-center gap-1.5">
-                                    <svg className="w-3.5 h-3.5 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
-                                    </svg>
-                                    <p className="text-xs text-gray-500">Drag to explore!</p>
+                    <div className="flex items-center gap-3">
+                        <motion.div
+                            className="px-3 py-1.5 rounded-xl"
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.15)',
+                                backdropFilter: 'blur(8px)',
+                            }}
+                            animate={{
+                                y: [0, -3, 0],
+                            }}
+                            transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                            }}
+                        >
+                            <div className="flex items-center gap-2">
+                                <svg className="w-4 h-4 text-pink-400" viewBox="0 0 24 24" fill="none">
+                                    <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <path d="M9 22V12H15V22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                <div>
+                                    <h2 className="text-base font-semibold text-gray-700 tracking-tight text-center leading-tight">YooA's Room</h2>
+                                    <div className="flex items-center gap-1 mt-0.5">
+                                        <svg className="w-3 h-3 text-pink-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                                        </svg>
+                                        <p className="text-xs text-gray-500 leading-tight">Drag to explore!</p>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <svg className="w-3 h-3 text-pink-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                        </svg>
+                                        <p className="text-xs text-gray-500 leading-tight">Scroll to zoom in/out</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </motion.div>
+                        </motion.div>
+
+                        {/* 치즈 모양 버튼 */}
+                        <motion.button
+                            onMouseEnter={() => setIsCheeseHovered(true)}
+                            onMouseLeave={() => setIsCheeseHovered(false)}
+                            onClick={() => {
+                                // 치즈 이모티콘 8개 생성
+                                const newCheeses = Array.from({ length: 8 }, (_, i) => ({
+                                    id: Date.now() + i,
+                                    x: Math.random() * window.innerWidth,
+                                    y: window.innerHeight + 50,
+                                    rotation: Math.random() * 360,
+                                    scale: 0.8 + Math.random() * 0.6,
+                                    delay: i * 0.1,
+                                }));
+                                setFlyingCheeses(prev => [...prev, ...newCheeses]);
+                                // 3초 후 제거
+                                setTimeout(() => {
+                                    setFlyingCheeses(prev => prev.filter(c => !newCheeses.find(nc => nc.id === c.id)));
+                                }, 3000);
+                            }}
+                            style={{
+                                background: isCheeseHovered
+                                    ? 'rgba(255, 107, 157, 0.25)'
+                                    : 'rgba(255, 255, 255, 0.15)',
+                                backdropFilter: 'blur(8px)',
+                                borderRadius: '50%',
+                                padding: '12px',
+                                border: isCheeseHovered
+                                    ? '2px solid rgba(255, 107, 157, 0.6)'
+                                    : '2px solid rgba(255, 255, 255, 0.3)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'background 0.3s ease, border 0.3s ease',
+                            }}
+                            whileHover={{
+                                scale: 1.15,
+                                y: -5,
+                            }}
+                            whileTap={{
+                                scale: 0.9,
+                            }}
+                            animate={{
+                                y: [0, -3, 0],
+                            }}
+                            transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                            }}
+                        >
+                            {/* 치즈 이모티콘 */}
+                            <span style={{ fontSize: '24px', transition: 'transform 0.3s ease' }}>
+                                🧀
+                            </span>
+                        </motion.button>
+                    </div>
+
+                    {/* 날아다니는 치즈 이모티콘들 */}
+                    {flyingCheeses.map((cheese) => (
+                        <motion.div
+                            key={cheese.id}
+                            initial={{
+                                x: cheese.x,
+                                y: cheese.y,
+                                rotate: cheese.rotation,
+                                scale: 0,
+                                opacity: 0,
+                            }}
+                            animate={{
+                                y: -100,
+                                rotate: cheese.rotation + 360,
+                                scale: cheese.scale,
+                                opacity: [0, 1, 1, 0],
+                            }}
+                            transition={{
+                                duration: 2.5,
+                                delay: cheese.delay,
+                                ease: "easeOut",
+                            }}
+                            style={{
+                                position: 'fixed',
+                                fontSize: '40px',
+                                pointerEvents: 'none',
+                                zIndex: 9999,
+                            }}
+                        >
+                            🧀
+                        </motion.div>
+                    ))}
                 </div>
 
                 {/* 좌우 비네팅 그림자 효과 - 65%~100% 구간에서 3D 모델에 집중 (핑크색) */}
@@ -570,6 +673,27 @@ useEffect(() => {
                         transition: 'opacity 0.3s ease-out',
                     }}
                 />
+
+                {/* 클릭 스파크 영역 - 스크롤 60%~100%, 좌우 15%~85% */}
+                {scrollProgress >= 0.60 && (
+                    <ClickSpark
+                        sparkColor="#ff6b9d"
+                        sparkSize={8}
+                        sparkRadius={25}
+                        sparkCount={12}
+                        duration={500}
+                        enabled={true}
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: '15%',
+                            width: '70%',
+                            height: '100%',
+                            zIndex: 16,
+                            pointerEvents: 'none',
+                        }}
+                    />
+                )}
             </div>
 
             {/* ============================================ */}
@@ -660,10 +784,10 @@ useEffect(() => {
                 }}
                 initial={{ x: -100, opacity: 0 }}
                 animate={{
-                    x: scrollProgress >= 0.20 && scrollProgress <= 0.65 ? 0 : -100,
-                    opacity: scrollProgress >= 0.20 && scrollProgress <= 0.65
-                        ? (scrollProgress < 0.28
-                            ? (scrollProgress - 0.20) / 0.08
+                    x: scrollProgress >= 0.09 && scrollProgress <= 0.65 ? 0 : -100,
+                    opacity: scrollProgress >= 0.09 && scrollProgress <= 0.65
+                        ? (scrollProgress < 0.17
+                            ? (scrollProgress - 0.09) / 0.08
                             : scrollProgress > 0.58
                                 ? 1 - (scrollProgress - 0.58) / 0.07
                                 : 1)
@@ -685,7 +809,7 @@ useEffect(() => {
                         style={{
                             background: 'rgba(255, 255, 255, 0.92)',
                             backdropFilter: 'blur(12px)',
-                            pointerEvents: scrollProgress >= 0.22 && scrollProgress <= 0.63 ? 'auto' : 'none',
+                            pointerEvents: scrollProgress >= 0.11 && scrollProgress <= 0.63 ? 'auto' : 'none',
                         }}
                     >
                         {/* 프로필 이미지 */}
@@ -706,25 +830,8 @@ useEffect(() => {
                         </span>
 
                         <span className="text-xs text-gray-400">
-                            구독자 {channelStats.subscribers}명
+                            총 팔로워 39.0k
                         </span>
-
-                        {/* 구독 버튼 */}
-                        <a
-                            href="https://www.youtube.com/@yooauau_official?sub_confirmation=1"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-white px-2.5 py-1 rounded text-xs font-semibold transition-colors"
-                            style={{
-                                background: 'linear-gradient(135deg, #ff6b6b, #ee5a5a)',
-                                boxShadow: '0 2px 8px rgba(255, 100, 100, 0.3)',
-                            }}
-                        >
-                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
-                            </svg>
-                            구독
-                        </a>
                     </div>
                 </div>
             </motion.div>
@@ -733,12 +840,17 @@ useEffect(() => {
             {/* 📊 Dashboard Content - ScrollStack 애니메이션 */}
             {/* ============================================ */}
             <div
-                className="fixed inset-0"
+                className="fixed"
                 style={{
+                    top: 0,
+                    left: '50%',
+                    width: '90vw',
+                    height: '100%',
                     zIndex: 10,
                     background: 'linear-gradient(135deg, rgba(255, 245, 245, 0.9) 0%, rgba(255, 228, 215, 0.7) 50%, rgba(255, 240, 245, 0.8) 100%)',
-                    // 15%~70% 스크롤 구간에서 동작
-                    transform: `translateY(${
+                    borderRadius: '0 0 32px 32px',
+                    // 15%~70% 스크롤 구간에서 동작 + 가운데 정렬 (translateX + translateY 합침)
+                    transform: `translateX(-50%) translateY(${
                         scrollProgress < 0.15
                             ? 100  // 15% 미만: 화면 아래 대기
                             : scrollProgress > 0.70
@@ -761,9 +873,16 @@ useEffect(() => {
                 }}
             >
                 <div
-                    className="w-full h-full"
+                    className="h-full"
+                    style={{
+                        width: '100%',
+                        padding: '40px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}
                 >
-                    <div className="relative px-4 pt-20 pb-0 h-full">
+                    <div className="relative h-full" style={{ width: '100%' }}>
                         {/* YouTube Section */}
                         <MagicBento
                             className="group"
@@ -771,57 +890,70 @@ useEffect(() => {
                             isCollapsed={expandedPlatform && expandedPlatform !== 'youtube'}
                             style={getCardStyle(0, 'youtube')}
                         >
-                            {/* Expand/Collapse Button - 이미지 스타일 V 아이콘 */}
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleExpand('youtube');
-                                }}
-                                className="absolute top-3 right-3 cursor-pointer flex items-center justify-center transition-all hover:scale-105 z-20"
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '24px' }}>
+                    {/* 헤더 영역 - position: relative로 버튼 배치 */}
+                    <div style={{
+                        background: 'linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%)',
+                        borderBottom: '1px solid rgba(0,0,0,0.05)',
+                        padding: '16px 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        borderRadius: '24px 24px 0 0',
+                        position: 'relative',
+                    }}>
+                        {/* Expand/Collapse Button - 헤더 우측 상단 */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleExpand('youtube');
+                            }}
+                            onMouseEnter={() => setHoveredExpandBtn('youtube')}
+                            onMouseLeave={() => setHoveredExpandBtn(null)}
+                            className="cursor-pointer flex items-center justify-center z-20"
+                            style={{
+                                position: 'absolute',
+                                top: '12px',
+                                right: '12px',
+                                padding: '8px',
+                                background: 'transparent',
+                                border: 'none',
+                                color: hoveredExpandBtn === 'youtube' ? '#ff6b9d' : '#9ca3af',
+                                transition: 'color 0.2s ease',
+                            }}
+                        >
+                            <svg
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
                                 style={{
-                                    width: '28px',
-                                    height: '28px',
-                                    borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, rgba(255, 200, 200, 0.3), rgba(255, 180, 180, 0.2))',
-                                    border: '1px solid rgba(255, 180, 180, 0.4)',
+                                    transform: expandedPlatform === 'youtube' ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.3s ease',
                                 }}
                             >
-                                <svg
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    style={{
-                                        transform: expandedPlatform === 'youtube' ? 'rotate(180deg)' : 'rotate(0deg)',
-                                        transition: 'transform 0.3s ease',
-                                    }}
-                                >
-                                    <path
-                                        d="M6 9L12 15L18 9"
-                                        stroke="rgba(220, 120, 120, 0.8)"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                    </button>
-
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '24px' }}>
-                    <a
-                        href="https://www.youtube.com/@yooauau_official"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                            background: 'linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%)',
-                            borderBottom: '1px solid rgba(0,0,0,0.05)',
-                            padding: '16px 20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            textDecoration: 'none',
-                            borderRadius: '24px 24px 0 0',
-                        }}
-                    >
+                                <path
+                                    d="M6 9L12 15L18 9"
+                                    stroke="currentColor"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
+                        </button>
+                        <a
+                            href="https://www.youtube.com/@yooauau_official"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                textDecoration: 'none',
+                                flex: 1,
+                            }}
+                        >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             {channelStats.channelThumbnail ? (
                                 <img
@@ -850,16 +982,43 @@ useEffect(() => {
                                     </svg>
                                 </div>
                             )}
-                            <div>
+                            <div style={{ flex: 1 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                    <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                                    <h2 style={{ fontSize: '26px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
                                         {channelStats.channelName || 'YouTube'}
                                     </h2>
                                     <span style={{ fontSize: '13px', color: '#6b7280' }}>구독자 {channelStats.subscribers}명</span>
                                 </div>
                             </div>
+                            {/* 구독 버튼 */}
+                            <a
+                                href="https://www.youtube.com/@yooauau_official?sub_confirmation=1"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    color: 'white',
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    background: 'linear-gradient(135deg, #ff6b6b, #ee5a5a)',
+                                    boxShadow: '0 2px 8px rgba(255, 100, 100, 0.3)',
+                                    textDecoration: 'none',
+                                    transition: 'all 0.2s',
+                                }}
+                            >
+                                <svg style={{ width: '12px', height: '12px' }} viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                                </svg>
+                                구독
+                            </a>
                         </div>
                     </a>
+                    </div>
 
                     <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '0 0 24px 24px' }}>
                         {loading ? (
@@ -884,27 +1043,28 @@ useEffect(() => {
                                                 rel="noopener noreferrer"
                                                 style={{
                                                     background: 'rgba(255,255,255,0.8)',
-                                                    borderRadius: '12px',
+                                                    borderRadius: '14px',
                                                     overflow: 'hidden',
                                                     cursor: 'pointer',
                                                     display: 'flex',
                                                     gap: '12px',
                                                     border: '1px solid rgba(0,0,0,0.05)',
                                                     textDecoration: 'none',
+                                                    minHeight: '120px',
                                                 }}
                                             >
-                                                <div style={{ position: 'relative', width: '160px', flexShrink: 0 }}>
+                                                <div style={{ position: 'relative', width: '210px', flexShrink: 0 }}>
                                                     <img
                                                         src={video.thumbnailHigh || video.thumbnail}
                                                         alt={video.title}
-                                                        style={{ width: '100%', height: '90px', objectFit: 'cover' }}
+                                                        style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '14px 0 0 14px' }}
                                                     />
                                                 </div>
-                                                <div style={{ padding: '8px 8px 8px 0', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                                    <h3 style={{ fontWeight: '500', color: '#1f2937', fontSize: '13px', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                                <div style={{ padding: '10px 12px 10px 0', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                                    <h3 style={{ fontWeight: '600', color: '#1f2937', fontSize: '17px', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                                                         {video.title}
                                                     </h3>
-                                                    <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#6b7280' }}>
+                                                    <div style={{ display: 'flex', gap: '12px', fontSize: '14px', color: '#6b7280' }}>
                                                         <span>👁️ {video.views}</span>
                                                         <span>❤️ {video.likes}</span>
                                                     </div>
@@ -956,43 +1116,92 @@ useEffect(() => {
                                 </div>
                             </div>
                         ) : (
-                            /* 접힌 상태: 기존 리스트 형태 */
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                {(youtubeLongform.length > 0 ? youtubeLongform.slice(0, 8) : youtubeVideos.length > 0 ? youtubeVideos : dummyYoutubeData.longform.slice(0, 8)).map((video) => (
-                                    <a
-                                        key={video.id}
-                                        href={video.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{
-                                            background: 'rgba(255,255,255,0.8)',
-                                            borderRadius: '18px',
-                                            overflow: 'hidden',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            gap: '16px',
-                                            border: '1px solid rgba(0,0,0,0.05)',
-                                            textDecoration: 'none',
-                                        }}
-                                    >
-                                        <div style={{ position: 'relative', width: '220px', flexShrink: 0 }}>
-                                            <img
-                                                src={video.thumbnailHigh || video.thumbnail}
-                                                alt={video.title}
-                                                style={{ width: '100%', height: '124px', objectFit: 'cover', borderRadius: '18px 0 0 18px' }}
-                                            />
-                                        </div>
-                                        <div style={{ padding: '12px 16px 12px 0', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                            <h3 style={{ fontWeight: '600', color: '#1f2937', fontSize: '16px', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                                                {video.title}
-                                            </h3>
-                                            <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#6b7280' }}>
-                                                <span>👁️ {video.views}</span>
-                                                <span>❤️ {video.likes}</span>
-                                            </div>
-                                        </div>
-                                    </a>
-                                ))}
+                            /* 접힌 상태: 왼쪽 롱폼 + 오른쪽 숏츠 (50:50) */
+                            <div style={{ display: 'flex', gap: '12px', height: '100%' }}>
+                                {/* 왼쪽: 롱폼 영상 (50%) */}
+                                <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        {(youtubeLongform.length > 0 ? youtubeLongform.slice(0, 4) : youtubeVideos.length > 0 ? youtubeVideos.slice(0, 4) : dummyYoutubeData.longform.slice(0, 4)).map((video) => (
+                                            <a
+                                                key={video.id}
+                                                href={video.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                    background: 'rgba(255,255,255,0.8)',
+                                                    borderRadius: '14px',
+                                                    overflow: 'hidden',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    gap: '12px',
+                                                    border: '1px solid rgba(0,0,0,0.05)',
+                                                    textDecoration: 'none',
+                                                    minHeight: '120px',
+                                                }}
+                                            >
+                                                <div style={{ position: 'relative', width: '210px', flexShrink: 0 }}>
+                                                    <img
+                                                        src={video.thumbnailHigh || video.thumbnail}
+                                                        alt={video.title}
+                                                        style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '14px 0 0 14px' }}
+                                                    />
+                                                </div>
+                                                <div style={{ padding: '10px 12px 10px 0', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                                    <h3 style={{ fontWeight: '600', color: '#1f2937', fontSize: '17px', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                                        {video.title}
+                                                    </h3>
+                                                    <div style={{ display: 'flex', gap: '10px', fontSize: '14px', color: '#6b7280' }}>
+                                                        <span>👁️ {video.views}</span>
+                                                        <span>❤️ {video.likes}</span>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* 구분선 */}
+                                <div style={{ width: '1px', background: 'rgba(200,200,200,0.3)', flexShrink: 0 }} />
+
+                                {/* 오른쪽: 숏츠 (50%) */}
+                                <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', paddingLeft: '8px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                                        {(youtubeShorts.length > 0 ? youtubeShorts.slice(0, 6) : dummyYoutubeData.shorts.slice(0, 6)).map((video) => (
+                                            <a
+                                                key={video.id}
+                                                href={video.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                    position: 'relative',
+                                                    aspectRatio: '9/16',
+                                                    borderRadius: '12px',
+                                                    overflow: 'hidden',
+                                                    cursor: 'pointer',
+                                                    textDecoration: 'none',
+                                                }}
+                                            >
+                                                <img
+                                                    src={video.thumbnailHigh || video.thumbnail}
+                                                    alt={video.title}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    bottom: 0,
+                                                    left: 0,
+                                                    right: 0,
+                                                    padding: '6px',
+                                                    background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                                                }}>
+                                                    <p style={{ fontSize: '10px', color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+                                                        {video.title}
+                                                    </p>
+                                                </div>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -1006,67 +1215,70 @@ useEffect(() => {
                     isCollapsed={expandedPlatform && expandedPlatform !== 'instagram'}
                     style={getCardStyle(1, 'instagram')}
                 >
-                    {/* Expand/Collapse Button */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleExpand('instagram');
-                        }}
-                        className="absolute top-3 right-3 cursor-pointer flex items-center justify-center transition-all hover:scale-105 z-20"
-                        style={{
-                            width: '28px',
-                            height: '28px',
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, rgba(255, 200, 200, 0.3), rgba(255, 180, 180, 0.2))',
-                            border: '1px solid rgba(255, 180, 180, 0.4)',
-                        }}
-                    >
-                        <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '24px' }}>
+                    {/* 헤더 영역 */}
+                    <div style={{
+                        background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)',
+                        borderBottom: '1px solid rgba(0,0,0,0.05)',
+                        padding: '16px 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        borderRadius: '24px 24px 0 0',
+                        position: 'relative',
+                    }}>
+                        {/* Expand/Collapse Button - 헤더 우측 상단 */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleExpand('instagram');
+                            }}
+                            onMouseEnter={() => setHoveredExpandBtn('instagram')}
+                            onMouseLeave={() => setHoveredExpandBtn(null)}
+                            className="cursor-pointer flex items-center justify-center z-20"
                             style={{
-                                transform: expandedPlatform === 'instagram' ? 'rotate(180deg)' : 'rotate(0deg)',
-                                transition: 'transform 0.3s ease',
+                                position: 'absolute',
+                                top: '12px',
+                                right: '12px',
+                                padding: '8px',
+                                background: 'transparent',
+                                border: 'none',
+                                color: hoveredExpandBtn === 'instagram' ? '#ff6b9d' : '#9ca3af',
+                                transition: 'color 0.2s ease',
                             }}
                         >
-                            <path
-                                d="M6 9L12 15L18 9"
-                                stroke="rgba(220, 120, 120, 0.8)"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
-                    </button>
-
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '24px' }}>
-                    <a
-                        href="https://www.instagram.com/yooauau/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                            background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)',
-                            borderBottom: '1px solid rgba(0,0,0,0.05)',
-                            padding: '16px 20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            textDecoration: 'none',
-                            borderRadius: '24px 24px 0 0',
-                        }}
-                    >
-                        <div style={{
-                            background: 'white',
-                            padding: '10px',
-                            borderRadius: '12px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="url(#ig-grad)">
+                            <svg
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                style={{
+                                    transform: expandedPlatform === 'instagram' ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.3s ease',
+                                }}
+                            >
+                                <path
+                                    d="M6 9L12 15L18 9"
+                                    stroke="currentColor"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
+                        </button>
+                        <a
+                            href="https://www.instagram.com/yooauau/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                textDecoration: 'none',
+                            }}
+                        >
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="url(#ig-grad)">
                                 <defs>
                                     <linearGradient id="ig-grad" x1="0%" y1="100%" x2="100%" y2="0%">
                                         <stop offset="0%" stopColor="#FED576"/>
@@ -1079,11 +1291,11 @@ useEffect(() => {
                                 <circle cx="12" cy="12" r="4" stroke="white" strokeWidth="1.5" fill="none"/>
                                 <circle cx="17" cy="7" r="1.5" fill="white"/>
                             </svg>
-                        </div>
-                        <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
-                            Instagram
-                        </h2>
-                    </a>
+                            <h2 style={{ fontSize: '26px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                                @yooauau
+                            </h2>
+                        </a>
+                    </div>
 
                     <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '16px', borderRadius: '0 0 24px 24px' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
@@ -1117,78 +1329,81 @@ useEffect(() => {
                     isCollapsed={expandedPlatform && expandedPlatform !== 'chzzk'}
                     style={getCardStyle(2, 'chzzk')}
                 >
-                    {/* Expand/Collapse Button */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleExpand('chzzk');
-                        }}
-                        className="absolute top-3 right-3 cursor-pointer flex items-center justify-center transition-all hover:scale-105 z-20"
-                        style={{
-                            width: '28px',
-                            height: '28px',
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, rgba(200, 230, 200, 0.3), rgba(180, 220, 180, 0.2))',
-                            border: '1px solid rgba(180, 220, 180, 0.4)',
-                        }}
-                    >
-                        <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '24px' }}>
+                    {/* 헤더 영역 */}
+                    <div style={{
+                        background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                        borderBottom: '1px solid rgba(0,0,0,0.05)',
+                        padding: '16px 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        borderRadius: '24px 24px 0 0',
+                        position: 'relative',
+                    }}>
+                        {/* Expand/Collapse Button - 헤더 우측 상단 */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleExpand('chzzk');
+                            }}
+                            onMouseEnter={() => setHoveredExpandBtn('chzzk')}
+                            onMouseLeave={() => setHoveredExpandBtn(null)}
+                            className="cursor-pointer flex items-center justify-center z-20"
                             style={{
-                                transform: expandedPlatform === 'chzzk' ? 'rotate(180deg)' : 'rotate(0deg)',
-                                transition: 'transform 0.3s ease',
+                                position: 'absolute',
+                                top: '12px',
+                                right: '12px',
+                                padding: '8px',
+                                background: 'transparent',
+                                border: 'none',
+                                color: hoveredExpandBtn === 'chzzk' ? '#ff6b9d' : '#9ca3af',
+                                transition: 'color 0.2s ease',
                             }}
                         >
-                            <path
-                                d="M6 9L12 15L18 9"
-                                stroke="rgba(100, 180, 100, 0.8)"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
-                    </button>
-
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '24px' }}>
-                    <a
-                        href="https://chzzk.naver.com/0c21abb4cc94b8d1de5b2bdaf9a69aa9"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                            background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                            borderBottom: '1px solid rgba(0,0,0,0.05)',
-                            padding: '16px 20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            textDecoration: 'none',
-                            borderRadius: '24px 24px 0 0',
-                        }}
-                    >
-                        <div style={{
-                            background: 'white',
-                            padding: '10px',
-                            borderRadius: '12px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                <rect width="24" height="24" rx="6" fill="#00E396"/>
+                            <svg
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                style={{
+                                    transform: expandedPlatform === 'chzzk' ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.3s ease',
+                                }}
+                            >
+                                <path
+                                    d="M6 9L12 15L18 9"
+                                    stroke="currentColor"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
+                        </button>
+                        <a
+                            href="https://chzzk.naver.com/0c21abb4cc94b8d1de5b2bdaf9a69aa9"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                textDecoration: 'none',
+                            }}
+                        >
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                                <rect width="24" height="24" rx="12" fill="#00E396"/>
                                 <path d="M6 12l4 4 8-8" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                        </div>
-                        <div>
-                            <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
-                                치지직
-                            </h2>
-                            <span style={{ fontSize: '12px', color: '#6b7280' }}>{chatMessages.length} 메시지</span>
-                        </div>
-                    </a>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <h2 style={{ fontSize: '26px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                                    치지직
+                                </h2>
+                                <span style={{ fontSize: '14px', color: '#6b7280' }}>{chatMessages.length} 메시지</span>
+                            </div>
+                        </a>
+                    </div>
 
                     <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '0 0 24px 24px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1240,75 +1455,78 @@ useEffect(() => {
                     isCollapsed={expandedPlatform && expandedPlatform !== 'naver'}
                     style={getCardStyle(3, 'naver')}
                 >
-                    {/* Expand/Collapse Button */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleExpand('naver');
-                        }}
-                        className="absolute top-3 right-3 cursor-pointer flex items-center justify-center transition-all hover:scale-105 z-20"
-                        style={{
-                            width: '28px',
-                            height: '28px',
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, rgba(200, 230, 200, 0.3), rgba(180, 220, 180, 0.2))',
-                            border: '1px solid rgba(180, 220, 180, 0.4)',
-                        }}
-                    >
-                        <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '24px' }}>
+                    {/* 헤더 영역 */}
+                    <div style={{
+                        background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                        borderBottom: '1px solid rgba(0,0,0,0.05)',
+                        padding: '16px 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        borderRadius: '24px 24px 0 0',
+                        position: 'relative',
+                    }}>
+                        {/* Expand/Collapse Button - 헤더 우측 상단 */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleExpand('naver');
+                            }}
+                            onMouseEnter={() => setHoveredExpandBtn('naver')}
+                            onMouseLeave={() => setHoveredExpandBtn(null)}
+                            className="cursor-pointer flex items-center justify-center z-20"
                             style={{
-                                transform: expandedPlatform === 'naver' ? 'rotate(180deg)' : 'rotate(0deg)',
-                                transition: 'transform 0.3s ease',
+                                position: 'absolute',
+                                top: '12px',
+                                right: '12px',
+                                padding: '8px',
+                                background: 'transparent',
+                                border: 'none',
+                                color: hoveredExpandBtn === 'naver' ? '#ff6b9d' : '#9ca3af',
+                                transition: 'color 0.2s ease',
                             }}
                         >
-                            <path
-                                d="M6 9L12 15L18 9"
-                                stroke="rgba(100, 180, 100, 0.8)"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
-                    </button>
-
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '24px' }}>
-                    <a
-                        href="https://cafe.naver.com/yooauau"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                            background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                            borderBottom: '1px solid rgba(0,0,0,0.05)',
-                            padding: '16px 20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            textDecoration: 'none',
-                            borderRadius: '24px 24px 0 0',
-                        }}
-                    >
-                        <div style={{
-                            background: 'white',
-                            padding: '10px',
-                            borderRadius: '12px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                <rect width="24" height="24" rx="4" fill="#00C73C"/>
+                            <svg
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                style={{
+                                    transform: expandedPlatform === 'naver' ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.3s ease',
+                                }}
+                            >
+                                <path
+                                    d="M6 9L12 15L18 9"
+                                    stroke="currentColor"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
+                        </button>
+                        <a
+                            href="https://cafe.naver.com/yooauau"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                textDecoration: 'none',
+                            }}
+                        >
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                                <rect width="24" height="24" rx="12" fill="#00C73C"/>
                                 <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">N</text>
                             </svg>
-                        </div>
-                        <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
-                            네이버 카페
-                        </h2>
-                    </a>
+                            <h2 style={{ fontSize: '26px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                                네이버 카페
+                            </h2>
+                        </a>
+                    </div>
 
                     <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '0 0 24px 24px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
