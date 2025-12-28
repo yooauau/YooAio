@@ -271,96 +271,7 @@ useEffect(() => {
         };
     };
 
-    // YouTube API 호출
-    useEffect(() => {
-        const fetchYouTubeData = async () => {
-            const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
-            const CHANNEL_ID = process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_ID;
-
-            try {
-                // 채널 정보 가져오기
-                const channelResponse = await fetch(
-                    `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=${CHANNEL_ID}&key=${API_KEY}`
-                );
-                const channelData = await channelResponse.json();
-
-                if (channelData.items && channelData.items.length > 0) {
-                    const stats = channelData.items[0].statistics;
-                    const snippet = channelData.items[0].snippet;
-                    setChannelStats({
-                        subscribers: formatNumber(stats.subscriberCount),
-                        totalViews: formatNumber(stats.viewCount),
-                        videoCount: stats.videoCount,
-                        channelName: snippet.title,
-                        channelThumbnail: snippet.thumbnails.default.url,
-                    });
-                }
-
-                // 최신 영상 가져오기 (더 많이 가져옴)
-                const videosResponse = await fetch(
-                    `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet,id&order=date&maxResults=20&type=video`
-                );
-                const videosData = await videosResponse.json();
-
-                if (videosData.items) {
-                    // 영상 상세 정보 가져오기 (조회수, 좋아요, duration)
-                    const videoIds = videosData.items
-                        .map((item) => item.id.videoId)
-                        .join(",");
-                    const statsResponse = await fetch(
-                        `https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${videoIds}&key=${API_KEY}`
-                    );
-                    const statsData = await statsResponse.json();
-
-                    // duration을 초로 변환하는 함수
-                    const parseDuration = (duration) => {
-                        const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-                        if (!match) return 0;
-                        const hours = parseInt(match[1] || 0);
-                        const minutes = parseInt(match[2] || 0);
-                        const seconds = parseInt(match[3] || 0);
-                        return hours * 3600 + minutes * 60 + seconds;
-                    };
-
-                    const allVideos = videosData.items.map((item, index) => {
-                        const statsItem = statsData.items.find(s => s.id === item.id.videoId);
-                        const duration = statsItem?.contentDetails?.duration || 'PT0S';
-                        const durationSeconds = parseDuration(duration);
-                        const isShorts = durationSeconds <= 60 || item.snippet.title.toLowerCase().includes('#shorts');
-                        
-                        return {
-                            id: item.id.videoId,
-                            title: item.snippet.title,
-                            thumbnail: item.snippet.thumbnails.medium.url,
-                            thumbnailHigh: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium.url,
-                            views: formatNumber(statsItem?.statistics?.viewCount || 0),
-                            likes: formatNumber(statsItem?.statistics?.likeCount || 0),
-                            url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-                            isShorts: isShorts,
-                            durationSeconds: durationSeconds,
-                        };
-                    });
-
-                    // 숏츠와 롱폼 분리
-                    const shorts = allVideos.filter(v => v.isShorts).slice(0, 8);
-                    const longform = allVideos.filter(v => !v.isShorts).slice(0, 8);
-
-                    setYoutubeShorts(shorts);
-                    setYoutubeLongform(longform);
-                    setYoutubeVideos(allVideos.slice(0, 3)); // 기존 호환용
-                }
-
-                setLoading(false);
-            } catch (error) {
-                console.error("YouTube API 에러:", error);
-                setLoading(false);
-            }
-        };
-
-        fetchYouTubeData();
-    }, []);
-
-    // 숫자 포맷팅 (1000 -> 1K)
+    // 숫자 포맷팅 (1000 -> 1K) - useEffect 전에 정의
     const formatNumber = (num) => {
         if (!num) return "0";
         const number = parseInt(num);
@@ -372,6 +283,169 @@ useEffect(() => {
         }
         return number.toString();
     };
+
+    // 더미 유튜브 데이터 (API 실패 시 폴백)
+    const dummyYoutubeData = {
+        channelStats: {
+            subscribers: "12.3K",
+            totalViews: "1.2M",
+            videoCount: "156",
+            channelName: "유아 YooA",
+            channelThumbnail: "/profile.jpg",
+        },
+        longform: [
+            { id: "1", title: "일상 브이로그 - 오키나와 여행", thumbnail: "/okinawa.jpg", views: "15.2K", likes: "1.2K", url: "https://www.youtube.com/@yooauau_official", isShorts: false },
+            { id: "2", title: "롯데월드 하루 종일 놀기", thumbnail: "/lotte.jpg", views: "23.1K", likes: "2.1K", url: "https://www.youtube.com/@yooauau_official", isShorts: false },
+            { id: "3", title: "한복 입고 경복궁 나들이", thumbnail: "/hanbok.jpg", views: "18.7K", likes: "1.8K", url: "https://www.youtube.com/@yooauau_official", isShorts: false },
+            { id: "4", title: "공원에서 피크닉", thumbnail: "/park.jpg", views: "12.4K", likes: "980", url: "https://www.youtube.com/@yooauau_official", isShorts: false },
+        ],
+        shorts: [
+            { id: "s1", title: "오늘의 먹방 #shorts", thumbnail: "/lotteeat.jpg", views: "45.2K", likes: "3.2K", url: "https://www.youtube.com/@yooauau_official", isShorts: true },
+            { id: "s2", title: "셀카 타임 #shorts", thumbnail: "/lotteface.jpg", views: "38.1K", likes: "2.8K", url: "https://www.youtube.com/@yooauau_official", isShorts: true },
+            { id: "s3", title: "오키나와 바다 #shorts", thumbnail: "/okinawa2.jpg", views: "52.3K", likes: "4.1K", url: "https://www.youtube.com/@yooauau_official", isShorts: true },
+            { id: "s4", title: "계란 요리 #shorts", thumbnail: "/egg.jpg", views: "28.9K", likes: "2.1K", url: "https://www.youtube.com/@yooauau_official", isShorts: true },
+            { id: "s5", title: "한복 셀카 #shorts", thumbnail: "/hanbokface.jpg", views: "61.2K", likes: "5.3K", url: "https://www.youtube.com/@yooauau_official", isShorts: true },
+            { id: "s6", title: "아트워크 #shorts", thumbnail: "/art.jpg", views: "33.7K", likes: "2.9K", url: "https://www.youtube.com/@yooauau_official", isShorts: true },
+        ]
+    };
+
+    // YouTube API 호출
+    useEffect(() => {
+        const fetchYouTubeData = async () => {
+            const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+            const CHANNEL_ID = process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_ID;
+
+            console.log("YouTube API 호출 시작");
+            console.log("API_KEY 존재:", !!API_KEY);
+            console.log("CHANNEL_ID:", CHANNEL_ID);
+
+            // API 키가 없으면 더미 데이터 사용
+            if (!API_KEY || !CHANNEL_ID) {
+                console.log("YouTube API 키 없음 - 더미 데이터 사용");
+                setChannelStats(dummyYoutubeData.channelStats);
+                setYoutubeLongform(dummyYoutubeData.longform);
+                setYoutubeShorts(dummyYoutubeData.shorts);
+                setYoutubeVideos(dummyYoutubeData.longform.slice(0, 3));
+                setLoading(false);
+                return;
+            }
+
+            try {
+                // 채널 정보 가져오기
+                console.log("채널 정보 요청 중...");
+                const channelResponse = await fetch(
+                    `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=${CHANNEL_ID}&key=${API_KEY}`
+                );
+                const channelData = await channelResponse.json();
+                console.log("채널 응답:", channelData);
+
+                // API 에러 체크
+                if (channelData.error) {
+                    console.error("채널 API 에러:", channelData.error);
+                    throw new Error(channelData.error.message);
+                }
+
+                if (channelData.items && channelData.items.length > 0) {
+                    const stats = channelData.items[0].statistics;
+                    const snippet = channelData.items[0].snippet;
+                    console.log("채널 정보:", snippet.title, "구독자:", stats.subscriberCount);
+                    setChannelStats({
+                        subscribers: formatNumber(stats.subscriberCount),
+                        totalViews: formatNumber(stats.viewCount),
+                        videoCount: stats.videoCount,
+                        channelName: snippet.title,
+                        channelThumbnail: snippet.thumbnails.default.url,
+                    });
+                }
+
+                // 최신 영상 가져오기
+                console.log("영상 목록 요청 중...");
+                const videosResponse = await fetch(
+                    `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet,id&order=date&maxResults=20&type=video`
+                );
+                const videosData = await videosResponse.json();
+                console.log("영상 응답:", videosData);
+
+                // API 에러 체크
+                if (videosData.error) {
+                    console.error("영상 API 에러:", videosData.error);
+                    throw new Error(videosData.error.message);
+                }
+
+                if (videosData.items && videosData.items.length > 0) {
+                    console.log("영상 개수:", videosData.items.length);
+
+                    // 영상 상세 정보 가져오기 (조회수, 좋아요, duration)
+                    const videoIds = videosData.items
+                        .map((item) => item.id.videoId)
+                        .join(",");
+
+                    console.log("영상 상세 정보 요청 중...");
+                    const statsResponse = await fetch(
+                        `https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${videoIds}&key=${API_KEY}`
+                    );
+                    const statsData = await statsResponse.json();
+                    console.log("영상 상세 응답:", statsData);
+
+                    // duration을 초로 변환하는 함수
+                    const parseDuration = (duration) => {
+                        const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+                        if (!match) return 0;
+                        const hours = parseInt(match[1] || 0);
+                        const minutes = parseInt(match[2] || 0);
+                        const seconds = parseInt(match[3] || 0);
+                        return hours * 3600 + minutes * 60 + seconds;
+                    };
+
+                    const allVideos = videosData.items.map((item) => {
+                        const statsItem = statsData.items?.find(s => s.id === item.id.videoId);
+                        const duration = statsItem?.contentDetails?.duration || 'PT0S';
+                        const durationSeconds = parseDuration(duration);
+                        const isShorts = durationSeconds <= 60 || item.snippet.title.toLowerCase().includes('#shorts');
+
+                        return {
+                            id: item.id.videoId,
+                            title: item.snippet.title,
+                            thumbnail: item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url,
+                            thumbnailHigh: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url,
+                            views: formatNumber(statsItem?.statistics?.viewCount || 0),
+                            likes: formatNumber(statsItem?.statistics?.likeCount || 0),
+                            url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+                            isShorts: isShorts,
+                            durationSeconds: durationSeconds,
+                        };
+                    });
+
+                    console.log("처리된 영상:", allVideos.length);
+
+                    // 숏츠와 롱폼 분리
+                    const shorts = allVideos.filter(v => v.isShorts).slice(0, 8);
+                    const longform = allVideos.filter(v => !v.isShorts).slice(0, 8);
+
+                    console.log("롱폼:", longform.length, "숏츠:", shorts.length);
+
+                    setYoutubeShorts(shorts);
+                    setYoutubeLongform(longform);
+                    setYoutubeVideos(allVideos.slice(0, 3));
+                    setLoading(false);
+                    console.log("YouTube 데이터 로드 완료!");
+                } else {
+                    console.log("영상이 없음 - 더미 데이터 사용");
+                    throw new Error("No videos found");
+                }
+            } catch (error) {
+                console.error("YouTube API 에러:", error);
+                // 에러 발생 시 더미 데이터 사용
+                setChannelStats(dummyYoutubeData.channelStats);
+                setYoutubeLongform(dummyYoutubeData.longform);
+                setYoutubeShorts(dummyYoutubeData.shorts);
+                setYoutubeVideos(dummyYoutubeData.longform.slice(0, 3));
+                setLoading(false);
+            }
+        };
+
+        fetchYouTubeData();
+    }, []);
 
     // 실시간 채팅 시뮬레이션
     useEffect(() => {
@@ -440,8 +514,8 @@ useEffect(() => {
                 </div>
 
                 {/* YooA's Room 타이틀 - 68% 이후 가운데 아래에서 나타남 */}
-                <div 
-                    className="absolute bottom-40 left-1/2 z-20"
+                <div
+                    className="absolute bottom-52 left-1/2 z-20"
                     style={{
                         transform: `translateX(-50%) translateY(${scrollProgress > 0.65 ? 0 : 50}px)`,
                         opacity: scrollProgress > 0.65 ? Math.min((scrollProgress - 0.65) * 5, 1) : 0,
@@ -481,7 +555,42 @@ useEffect(() => {
                         </div>
                     </motion.div>
                 </div>
+
+                {/* 좌우 비네팅 그림자 효과 - 65%~100% 구간에서 3D 모델에 집중 (핑크색) */}
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        pointerEvents: 'none',
+                        zIndex: 15,
+                        opacity: scrollProgress >= 0.65
+                            ? Math.min((scrollProgress - 0.65) / 0.08, 1)
+                            : 0,
+                        background: 'linear-gradient(90deg, rgba(196,69,105,0.5) 0%, rgba(255,107,157,0.3) 12%, transparent 18%, transparent 82%, rgba(255,107,157,0.3) 88%, rgba(196,69,105,0.5) 100%)',
+                        transition: 'opacity 0.3s ease-out',
+                    }}
+                />
             </div>
+
+            {/* ============================================ */}
+            {/* 🎨 초기화면 왼쪽 상단 비네팅 - 0%~13% */}
+            {/* ============================================ */}
+            <div
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '50%',
+                    height: '50%',
+                    pointerEvents: 'none',
+                    zIndex: 15,
+                    opacity: scrollProgress <= 0.13
+                        ? 1 - (scrollProgress / 0.13)
+                        : 0,
+                    background: 'radial-gradient(ellipse at top left, rgba(196,69,105,0.4) 0%, rgba(255,107,157,0.2) 30%, transparent 70%)',
+                    transition: 'opacity 0.3s ease-out',
+                }}
+            />
 
             {/* ============================================ */}
             {/* 🌟 첫 화면 - YooA World 타이틀 (정중앙) */}
@@ -492,7 +601,7 @@ useEffect(() => {
                     top: '50%',
                     left: '50%',
                     transform: `translate(-50%, -50%) translateY(${-scrollProgress * 200}px) scale(${1 - scrollProgress * 0.5})`,
-                    opacity: scrollProgress < 0.15 ? 1 - scrollProgress * 6 : 0,
+                    opacity: scrollProgress < 0.18 ? 1 - scrollProgress * 5.5 : 0,
                     transition: 'opacity 0.3s ease-out, transform 0.3s ease-out',
                 }}
             >
@@ -752,135 +861,138 @@ useEffect(() => {
                         </div>
                     </a>
 
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '0 0 24px 24px' }}>
+                    <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '0 0 24px 24px' }}>
                         {loading ? (
-                            <div className="flex items-center justify-center h-full">
-                                <div className="text-gray-400">로딩 중...</div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                <div style={{ color: '#9ca3af' }}>로딩 중...</div>
                             </div>
                         ) : expandedPlatform === 'youtube' ? (
                             /* 펼쳐진 상태: 왼쪽 롱폼 + 오른쪽 숏츠 (50:50) */
-                            <div className="flex gap-3 h-full">
+                            <div style={{ display: 'flex', gap: '12px', height: '100%' }}>
                                 {/* 왼쪽: 롱폼 영상 (50%) */}
-                                <div className="flex-1 overflow-y-auto pr-2">
-                                    <h3 className="text-sm font-semibold text-gray-600 mb-3 flex items-center gap-2 sticky top-0 bg-white/80 backdrop-blur-sm py-1 z-10">
-                                        <Play className="w-4 h-4 text-red-500" />
+                                <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
+                                    <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#4b5563', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Play style={{ width: '16px', height: '16px', color: '#ef4444' }} />
                                         동영상
                                     </h3>
-                                    <div className="space-y-2">
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                         {youtubeLongform.length > 0 ? youtubeLongform.map((video) => (
                                             <a
                                                 key={video.id}
                                                 href={video.url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="bg-white/80 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer group flex gap-3 border border-gray-100"
+                                                style={{
+                                                    background: 'rgba(255,255,255,0.8)',
+                                                    borderRadius: '12px',
+                                                    overflow: 'hidden',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    gap: '12px',
+                                                    border: '1px solid rgba(0,0,0,0.05)',
+                                                    textDecoration: 'none',
+                                                }}
                                             >
-                                                <div className="relative w-52 flex-shrink-0">
+                                                <div style={{ position: 'relative', width: '160px', flexShrink: 0 }}>
                                                     <img
                                                         src={video.thumbnailHigh || video.thumbnail}
                                                         alt={video.title}
-                                                        className="w-full h-[120px] object-cover"
+                                                        style={{ width: '100%', height: '90px', objectFit: 'cover' }}
                                                     />
-                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <Play className="w-10 h-10 text-white" fill="white" />
-                                                    </div>
                                                 </div>
-                                                <div className="py-2 pr-2 flex-1 flex flex-col justify-center">
-                                                    <h3 className="font-medium text-gray-800 text-sm line-clamp-2 leading-snug mb-2">
+                                                <div style={{ padding: '8px 8px 8px 0', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                                    <h3 style={{ fontWeight: '500', color: '#1f2937', fontSize: '13px', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                                                         {video.title}
                                                     </h3>
-                                                    <div className="flex gap-3 text-xs text-gray-500">
+                                                    <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#6b7280' }}>
                                                         <span>👁️ {video.views}</span>
                                                         <span>❤️ {video.likes}</span>
                                                     </div>
                                                 </div>
                                             </a>
                                         )) : (
-                                            <div className="text-gray-400 text-sm">롱폼 영상이 없습니다</div>
+                                            <div style={{ color: '#9ca3af', fontSize: '14px' }}>롱폼 영상이 없습니다</div>
                                         )}
                                     </div>
                                 </div>
 
                                 {/* 구분선 */}
-                                <div className="w-px bg-gray-200/50 flex-shrink-0" />
+                                <div style={{ width: '1px', background: 'rgba(200,200,200,0.3)', flexShrink: 0 }} />
 
                                 {/* 오른쪽: 숏츠 (50%) */}
-                                <div className="flex-1 overflow-y-auto pl-2">
-                                    <h3 className="text-sm font-semibold text-gray-600 mb-3 flex items-center gap-2 sticky top-0 bg-white/80 backdrop-blur-sm py-1 z-10">
-                                        <svg className="w-4 h-4 text-red-500" viewBox="0 0 24 24" fill="currentColor">
+                                <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', paddingLeft: '8px' }}>
+                                    <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#4b5563', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <svg style={{ width: '16px', height: '16px', color: '#ef4444' }} viewBox="0 0 24 24" fill="currentColor">
                                             <path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z"/>
                                         </svg>
                                         Shorts
                                     </h3>
-                                    <div className="grid grid-cols-4 gap-2">
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
                                         {youtubeShorts.length > 0 ? youtubeShorts.map((video) => (
                                             <a
                                                 key={video.id}
                                                 href={video.url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="group cursor-pointer"
+                                                style={{ textDecoration: 'none' }}
                                             >
-                                                <div className="relative aspect-[9/16] rounded-lg overflow-hidden bg-gray-100 shadow-sm hover:shadow-md transition-all">
+                                                <div style={{ position: 'relative', aspectRatio: '9/16', borderRadius: '8px', overflow: 'hidden', background: '#f3f4f6' }}>
                                                     <img
                                                         src={video.thumbnailHigh || video.thumbnail}
                                                         alt={video.title}
-                                                        className="w-full h-full object-cover"
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                     />
-                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <Play className="w-8 h-8 text-white" fill="white" />
-                                                    </div>
-                                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                                                        <p className="text-white text-xs line-clamp-2 leading-tight font-medium">
+                                                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', padding: '8px' }}>
+                                                        <p style={{ color: 'white', fontSize: '10px', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                                                             {video.title.replace(/#shorts|#Shorts|#SHORT/gi, '').trim()}
                                                         </p>
                                                     </div>
                                                 </div>
                                             </a>
                                         )) : (
-                                            <div className="col-span-4 text-gray-400 text-sm">숏츠가 없습니다</div>
+                                            <div style={{ gridColumn: 'span 4', color: '#9ca3af', fontSize: '14px' }}>숏츠가 없습니다</div>
                                         )}
                                     </div>
                                 </div>
                             </div>
                         ) : (
                             /* 접힌 상태: 기존 리스트 형태 */
-                            <div className="space-y-3">
-                                {(youtubeLongform.length > 0 ? youtubeLongform.slice(0, 3) : youtubeVideos.length > 0 ? youtubeVideos : []).length > 0 ? (
-                                    (youtubeLongform.length > 0 ? youtubeLongform.slice(0, 3) : youtubeVideos).map((video) => (
-                                        <a
-                                            key={video.id}
-                                            href={video.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="bg-white/80 rounded-2xl overflow-hidden hover:shadow-md transition-all cursor-pointer group flex gap-4 border border-gray-100"
-                                        >
-                                            <div className="relative w-40 flex-shrink-0">
-                                                <img
-                                                    src={video.thumbnail}
-                                                    alt={video.title}
-                                                    className="w-full h-24 object-cover"
-                                                />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                    <Play className="w-8 h-8 text-white" fill="white" />
-                                                </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                {(youtubeLongform.length > 0 ? youtubeLongform.slice(0, 8) : youtubeVideos.length > 0 ? youtubeVideos : dummyYoutubeData.longform.slice(0, 8)).map((video) => (
+                                    <a
+                                        key={video.id}
+                                        href={video.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            background: 'rgba(255,255,255,0.8)',
+                                            borderRadius: '18px',
+                                            overflow: 'hidden',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            gap: '16px',
+                                            border: '1px solid rgba(0,0,0,0.05)',
+                                            textDecoration: 'none',
+                                        }}
+                                    >
+                                        <div style={{ position: 'relative', width: '220px', flexShrink: 0 }}>
+                                            <img
+                                                src={video.thumbnailHigh || video.thumbnail}
+                                                alt={video.title}
+                                                style={{ width: '100%', height: '124px', objectFit: 'cover', borderRadius: '18px 0 0 18px' }}
+                                            />
+                                        </div>
+                                        <div style={{ padding: '12px 16px 12px 0', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                            <h3 style={{ fontWeight: '600', color: '#1f2937', fontSize: '16px', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                                {video.title}
+                                            </h3>
+                                            <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#6b7280' }}>
+                                                <span>👁️ {video.views}</span>
+                                                <span>❤️ {video.likes}</span>
                                             </div>
-                                            <div className="py-2 pr-3 flex-1">
-                                                <h3 className="font-medium text-gray-800 text-sm mb-1 line-clamp-2 leading-snug">
-                                                    {video.title}
-                                                </h3>
-                                                <div className="flex gap-3 text-xs text-gray-500">
-                                                    <span>👁️ {video.views}</span>
-                                                    <span>❤️ {video.likes}</span>
-                                                </div>
-                                            </div>
-                                        </a>
-                                    ))
-                                ) : (
-                                    <div className="flex items-center justify-center h-full">
-                                        <div className="text-gray-400">영상을 불러올 수 없습니다</div>
-                                    </div>
-                                )}
+                                        </div>
+                                    </a>
+                                ))}
                             </div>
                         )}
                     </div>
@@ -973,7 +1085,7 @@ useEffect(() => {
                         </h2>
                     </a>
 
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '16px', borderRadius: '0 0 24px 24px' }}>
+                    <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '16px', borderRadius: '0 0 24px 24px' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                             {instagramPosts.map((post) => (
                                 <div
@@ -1078,7 +1190,7 @@ useEffect(() => {
                         </div>
                     </a>
 
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '0 0 24px 24px' }}>
+                    <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '0 0 24px 24px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             {chatMessages.map((msg) => (
                                 <div
@@ -1198,7 +1310,7 @@ useEffect(() => {
                         </h2>
                     </a>
 
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '0 0 24px 24px' }}>
+                    <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '12px', borderRadius: '0 0 24px 24px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             {cafePosts.map((post) => (
                                 <div

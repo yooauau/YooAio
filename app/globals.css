@@ -76,21 +76,36 @@ body > div:last-of-type[style*="z-index: 9999"] {
     }
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - YooA World 핑크 그라데이션 */
 ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 12px;
+    height: 12px;
 }
 
 ::-webkit-scrollbar-track {
-    background: transparent;
+    background: rgba(255, 240, 245, 0.5);
+    border-radius: 10px;
+    margin: 8px 0;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(200, 200, 200, 0.4);
-    border-radius: 2px;
+    background: linear-gradient(180deg, #ff6b9d 0%, #c44569 50%, #ff6b9d 100%);
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(255, 107, 157, 0.4);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(200, 200, 200, 0.6);
+    background: linear-gradient(180deg, #ff85ad 0%, #d45579 50%, #ff85ad 100%);
+    box-shadow: 0 2px 12px rgba(255, 107, 157, 0.6);
+}
+
+::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(180deg, #e55a8a 0%, #b43559 50%, #e55a8a 100%);
+}
+
+/* Firefox 스크롤바 */
+* {
+    scrollbar-width: auto;
+    scrollbar-color: #ff6b9d rgba(255, 240, 245, 0.5);
 }
