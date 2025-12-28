@@ -1,26 +1,96 @@
+/* Tailwind CSS v4 - 반드시 맨 위에 있어야 함 */
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Jersey15 Font */
+@font-face {
+    font-family: 'Jersey15';
+    src: url('/fonts/Jersey15-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* 전체 앱에 폰트 적용 */
+* {
+    font-family: 'Jersey15', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html, body {
+    font-family: 'Jersey15', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: 0.02em;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ============================================ */
+/* Next.js Dev Indicator 완전히 숨기기 */
+/* ============================================ */
+body > nextjs-portal,
+nextjs-portal {
+    display: none !important;
+}
+
+[data-nextjs-dialog-overlay],
+[data-nextjs-dialog],
+[data-nextjs-toast],
+[data-nextjs-terminal],
+#__next-build-watcher,
+[data-next-hide-fouc],
+#__next-dev-overlay,
+.nextjs-toast-wrapper,
+div[data-nextjs-toast] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+body > div[style*="position: fixed"][style*="bottom: 10px"],
+body > div[style*="position: fixed"][style*="left: 10px"],
+body > div:last-of-type[style*="z-index: 9999"] {
+    display: none !important;
+}
+
+/* MagicBento 애니메이션 */
+@keyframes borderDash {
+    to {
+        stroke-dashoffset: -500;
+    }
+}
+
+@keyframes glow-pulse {
+    0%, 100% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(200, 200, 200, 0.4);
+    border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(200, 200, 200, 0.6);
 }
